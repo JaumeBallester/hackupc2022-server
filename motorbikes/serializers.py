@@ -27,6 +27,13 @@ class NextBikeSerializer(serializers.Serializer):
     licence = serializers.DictField(required=True)
     type = serializers.DictField(required=True)
 
+class NextBike2Serializer(serializers.Serializer):
+    medians = serializers.DictField(required=True)
+    filters = serializers.DictField(required=True)
+    totalValuated = serializers.IntegerField(required=True)
+    exclude = serializers.ListField(required=True)
+    sent = serializers.ListField(required=True)
+
 class BikeSelectorSerializer(serializers.Serializer):
     bike_ids = serializers.ListField(required=True)
 

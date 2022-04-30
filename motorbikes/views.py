@@ -9,6 +9,11 @@ from motorbikes.serializers import *
 from motorbikes.models import Motorbikes, Brands 
 import random
 from tabulate import tabulate
+from django.db.models import Avg, Max, Min, Sum
+import bisect 
+import random
+from operator import add, sub, mul
+
 
 def bikeToDict(bike):
 
@@ -83,7 +88,129 @@ def getBikesEquals(bikes, field, value):
     return set(bike['id'] for bike in bikes if bike[field] == value)
 
 
+class BikeStats(APIView):
+
+    @swagger_auto_schema(responses={200: BikeStatsSerializer(many=False)})
+    def get(self, request, format=None):
+        
+        results ={}
+        stats = Motorbikes.objects.all().aggregate(Avg('price'),
+                                                 Max('price'),
+                                                 Min('price'),
+                                                 Avg('year'),
+                                                 Max('year'),
+                                                 Min('year'),
+                                                 Avg('cc'),
+                                                 Max('cc'),
+                                                 Min('cc'),
+                                                 Avg('km'),
+                                                 Max('km'),
+                                                 Min('km'))
+        for stat in stats:
+            keys = stat.split('__')
+            if keys[0] not in results:
+                results[keys[0]] = {}
+            results[keys[0]][keys[1]] = stats[stat]
+        return Response(results, status=status.HTTP_200_OK)
+
+
 class NextBike(APIView):
+
+    @swagger_auto_schema(request_body=NextBike2Serializer)
+    def post(self, request, format=None):
+
+        in_data = NextBike2Serializer(data=request.data)
+        in_data.is_valid(raise_exception=True)
+        exclude = in_data.validated_data.get('exclude')
+        sent = in_data.validated_data.get('sent')
+
+        exclude += sent
+
+        userMean = in_data.validated_data.get('medians')
+        numberBikes = in_data.validated_data.get('totalValuated')
+        filters = in_data.validated_data.get('filters')
+
+        excludeDic = {}
+        for _filter in filters:
+            excludeDic[_filter] = set([ c for c in filters[_filter] if not filters[_filter][c]])
+        
+
+        results = {}
+        stats = Motorbikes.objects.all().aggregate(Avg('price'),
+                                                 Max('price'),
+                                                 Min('price'),
+                                                 Avg('year'),
+                                                 Max('year'),
+                                                 Min('year'),
+                                                 Avg('cc'),
+                                                 Max('cc'),
+                                                 Min('cc'),
+                                                 Avg('km'),
+                                                 Max('km'),
+                                                 Min('km'))
+        for stat in stats:
+            keys = stat.split('__')
+            if keys[0] not in results:
+                results[keys[0]] = {}
+            results[keys[0]][keys[1]] = stats[stat]
+        
+        # THIS SHOULD BE CACHED!
+        unfiltered_bikes = {b['bike_id']:b for b in Motorbikes.objects.all().values('bike_id', 'price', 'year', 'cc', 'km', 'licence', 'type', 'brand') if b['bike_id'] not in set(exclude)}
+        
+        brands = {b.brand_id:b.name for b in Brands.objects.all()}
+        bikes = {}
+        # Exclude filters
+        for bike in unfiltered_bikes:
+            if (unfiltered_bikes[bike]['licence'] not in excludeDic['licence'] and 
+               unfiltered_bikes[bike]['type'] not in excludeDic['type'] and
+               brands[unfiltered_bikes[bike]['brand']] not in excludeDic['brand']):
+                bikes[bike] = unfiltered_bikes[bike]
+        
+        # Normalize bikes values
+        for field in ['price', 'year', 'cc', 'km']:
+            for bike in bikes:
+                bikes[bike][field] = (bikes[bike][field] - results[field]['min']) / (results[field]['max'] - results[field]['min'])
+        
+        #Normalize user Mean
+        for field in userMean:
+            userMean[field] = (userMean[field] - results[field]['min']) / (results[field]['max'] - results[field]['min'])
+        
+
+        #Calculate Distance from user
+
+        bikeDistance = []
+        for bike in bikes:
+            distance = 0
+            for field in ['price', 'year', 'cc', 'km']:
+                distance += abs(userMean[field] - bikes[bike][field])
+                #if bike == "0000000001":
+                #    print(field, userMean[field], bikes[bike][field], abs(userMean[field] - bikes[bike][field]))
+
+            random_range = max(0.3-(0.01*(numberBikes-1)),0.1)
+            random_value = random.uniform(-random_range, +random_range)
+            if distance/4 < abs(random_value) and random_value < 0:
+                    distance = distance/4 
+            else:
+                distance = min( max( (distance/4) + random_value, 0) ,1)
+            bisect.insort(bikeDistance, (distance, bike))
+
+        #print(bikeDistance)
+
+        if not bikeDistance:
+            return Response({}, status=status.HTTP_200_OK)
+
+        result_bike = bikeToDict(Motorbikes.objects.get(bike_id=bikeDistance[0][1]))
+
+        mps = MotorbikeSerializer(data=result_bike, many=False)
+
+        if mps.is_valid():
+            return Response(mps.data, status=status.HTTP_200_OK)
+
+        return Response(mps.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class NextBikeOld(APIView):
 
     @swagger_auto_schema(request_body=NextBikeSerializer, responses={200: MotorbikeSerializer(many=False)})
     def post(self, request, format=None):
