@@ -1,0 +1,18 @@
+*.pyc
+*migrations*
+
+env/
+*.sql
+*.diff
+
+\.vscode/
+
+# Django-environ files
+.env
+!.env.example
+*migrations*
+env/
+*.sql
+*.diff
+
+\.vscode/
