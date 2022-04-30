@@ -35,6 +35,7 @@ ALLOWED_HOSTS = ['*']
 INSTALLED_APPS = [
     'rest_framework',
    # 'django.contrib.staticfiles',  # required for serving swagger ui's css/js files
+    'motorbikes',
     'drf_yasg',
     'django.contrib.admin',
     'django.contrib.auth',

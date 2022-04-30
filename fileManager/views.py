@@ -13,13 +13,13 @@ import base64
 
 class Image(APIView):
 
-    @swagger_auto_schema(request_body=ImageSerializer, content_type="image/jpg")
-    def post(self, request, format=None):
-        in_data = ImageSerializer(data=request.data)
-        in_data.is_valid(raise_exception=True)
+    @swagger_auto_schema(content_type="image/jpg")
+    def get(self, request, image_id, format=None):
+        #in_data = ImageSerializer(data=request.data)
+        #in_data.is_valid(raise_exception=True)
 
 
-        image_id  = in_data.validated_data.get('image_id')
+        #image_id  = in_data.validated_data.get('image_id')
 
         try:
             imgPath = CT.IMAGES_DIR + image_id +".jpg"

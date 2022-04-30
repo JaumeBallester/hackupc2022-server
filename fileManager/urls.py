@@ -1,7 +1,7 @@
 from fileManager import views
-from django.urls import path
+from django.urls import path, re_path
 
 
 urlpatterns = [
-    path('image/',views.Image.as_view())
+    re_path(r'^image/(?P<image_id>\w{0,11})/$',views.Image.as_view())
     ]
