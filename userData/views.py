@@ -8,7 +8,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 class Test(APIView):
 
-    @swagger_auto_schema(request_body=TestSerializer, responses={200: TestResponseSerializer(many=True)})
+    @swagger_auto_schema(request_body=TestSerializer, responses={200: TestResponseSerializer(many=False)})
     def post(self, request, format=None):
         """
         This is a test API call.
