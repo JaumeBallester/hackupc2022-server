@@ -18,11 +18,20 @@ class MotorbikeSerializer(serializers.Serializer):
     url       = serializers.CharField(required=True)
 
 class NextBikeSerializer(serializers.Serializer):
+    exclude = serializers.ListField(required=True)
     year = serializers.DictField(required=True)
     price = serializers.DictField(required=True)
     km = serializers.DictField(required=True)
     cc = serializers.DictField(required=True)
-    exclude = serializers.ListField(required=True)
+    brand = serializers.DictField(required=True)
+    licence = serializers.DictField(required=True)
+    type = serializers.DictField(required=True)
 
 class BikeSelectorSerializer(serializers.Serializer):
     bike_ids = serializers.ListField(required=True)
+
+class BikeStatsSerializer(serializers.Serializer):
+    year      = serializers.ListField(required=True)
+    km        = serializers.IntegerField(required=True)
+    price     = serializers.IntegerField(required=True)
+    cc        = serializers.IntegerField(required=True)

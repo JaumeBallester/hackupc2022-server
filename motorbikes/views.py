@@ -77,7 +77,10 @@ def getBikesRange(bikes, field, range):
     field_range = range.split('-')
     field_min = int(field_range[0])
     field_max = int(field_range[1])
-    return set(bike['bike_id'] for bike in bikes if field_max>=bike[field] and bike[field]>=field_min)
+    return set(bike['id'] for bike in bikes if field_max>=bike[field] and bike[field]>=field_min)
+
+def getBikesEquals(bikes, field, value):
+    return set(bike['id'] for bike in bikes if bike[field] == value)
 
 
 class NextBike(APIView):
@@ -92,38 +95,61 @@ class NextBike(APIView):
         price    = in_data.validated_data.get('price')
         km    = in_data.validated_data.get('km')
         cc    = in_data.validated_data.get('cc')
+        brand = in_data.validated_data.get('brand')
+        type = in_data.validated_data.get('type')
+        licence = in_data.validated_data.get('licence')
 
 
-        bikes = [bike.__dict__ for bike in Motorbikes.objects.all().exclude(bike_id__in=exclude)]
+        bikes = [bikeToDict(bike) for bike in Motorbikes.objects.all().exclude(bike_id__in=exclude)]
 
         year_range = pickRandomDict(year)
         price_range = pickRandomDict(price)
         km_range = pickRandomDict(km)
         cc_range = pickRandomDict(cc)
+        brand_value = pickRandomDict(brand)
+        type_value = pickRandomDict(type)
+        licence_value = pickRandomDict(licence)
 
         year_bikes = getBikesRange(bikes, 'year', year_range)
         price_bikes = getBikesRange(bikes, 'price', price_range)
         km_bikes = getBikesRange(bikes, 'km', km_range)
         cc_bikes = getBikesRange(bikes, 'cc', cc_range)
+        
+        brand_bikes = getBikesEquals(bikes, 'brand', brand_value)
+        type_bikes = getBikesEquals(bikes, 'type', type_value)
+        licence_bikes = getBikesEquals(bikes, 'licence', licence_value)
 
+        key_debug = [[key,str(round(type[key]*100,2)) ] for key in type]
 
-        intersection_bikes1 = year_bikes.intersection(price_bikes)
-        intersection_bikes2 = intersection_bikes1.intersection(km_bikes)
-        intersection_bikes3 = intersection_bikes2.intersection(cc_bikes)
+        print()
+        print(tabulate(sorted(key_debug, key=lambda x: x[0]),tablefmt="pretty",headers=["Type", "Percent"]))
+        print()
+        bikes_sets = [year_bikes, price_bikes, km_bikes, cc_bikes, brand_bikes, type_bikes, licence_bikes]
 
-        bike_id = intersection_bikes3.pop()
-        result_bike=bikeToDict(Motorbikes.objects.get(bike_id=bike_id))
+        bike_scores = {}
+        for b in bikes:
+            bike_scores[b['id']] = sum([1 for set in bikes_sets if b['id'] in set])
+
+        winners = sorted(bike_scores.items(), key=lambda x: x[1])[-3:]
+        result_ids = [winner[0] for winner in winners]
+        result_bikes = [bikeToDict(b) for b in Motorbikes.objects.filter(bike_id__in=result_ids)]
 
         print()
         print(tabulate(
-            [['Year',year_range, len(year_bikes), result_bike['year']],
-            [ 'Price',price_range, len(price_bikes), result_bike['price']],
-            [ 'Km',km_range, len(km_bikes), result_bike['km']],
-            [ 'cc', cc_range, len(cc_bikes), result_bike['cc']]],
-            headers=["Field", "Range", "Included", "Selected"]))
+            [['Year',   year_range,    len(year_bikes),    result_bikes[0]['year'],    result_bikes[0]['id'] in year_bikes ],
+            [ 'Price',  price_range,   len(price_bikes),   result_bikes[0]['price'],   result_bikes[0]['id'] in price_bikes],
+            [ 'Km',     km_range,      len(km_bikes),      result_bikes[0]['km'],      result_bikes[0]['id'] in km_bikes],
+            [ 'cc',     cc_range,      len(cc_bikes),      result_bikes[0]['cc'],      result_bikes[0]['id'] in cc_bikes],
+            [ 'brand',  brand_value,   len(brand_bikes),   result_bikes[0]['brand'],   result_bikes[0]['id'] in brand_bikes],
+            [ 'type',   type_value,    len(type_bikes),    result_bikes[0]['type'],    result_bikes[0]['id'] in type_bikes],
+            [ 'licence',licence_value, len(licence_bikes), result_bikes[0]['licence'], result_bikes[0]['id'] in licence_bikes],
+            ],
+            headers=["Field", "Range", "Included", "Selected", "Satisfies"],tablefmt="pretty"))
+        print()
+        print('TOTAL SCORE:', [winner[1] for winner in winners][::-1])
         print()
 
-        mps = MotorbikeSerializer(data=result_bike, many=False)
+        mps = MotorbikeSerializer(data=result_bikes, many=True)
 
         if mps.is_valid():
             return Response(mps.data, status=status.HTTP_200_OK)
