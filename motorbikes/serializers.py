@@ -7,7 +7,7 @@ class MotorbikeSerializer(serializers.Serializer):
     """
     id        = serializers.CharField(required=True)
     name      = serializers.CharField(required=True)
-    brand     = serializers.ForeignKey(required=True)
+    brand     = serializers.CharField(required=True)
     year      = serializers.IntegerField(required=True)
     km        = serializers.IntegerField(required=True)
     type      = serializers.CharField(required=True)
@@ -16,4 +16,13 @@ class MotorbikeSerializer(serializers.Serializer):
     price     = serializers.IntegerField(required=True)
     cc        = serializers.IntegerField(required=True)
     url       = serializers.CharField(required=True)
-    image     = serializers.CharField(required=True)
+
+class NextBikeSerializer(serializers.Serializer):
+    year = serializers.DictField(required=True)
+    price = serializers.DictField(required=True)
+    km = serializers.DictField(required=True)
+    cc = serializers.DictField(required=True)
+    exclude = serializers.ListField(required=True)
+
+class BikeSelectorSerializer(serializers.Serializer):
+    bike_ids = serializers.ListField(required=True)

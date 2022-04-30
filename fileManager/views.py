@@ -15,6 +15,9 @@ class Image(APIView):
 
     @swagger_auto_schema(content_type="image/jpg")
     def get(self, request, image_id, format=None):
+        """
+            Get Motorbike Images, IDS go from 0000000001 to 0000001133
+        """
         #in_data = ImageSerializer(data=request.data)
         #in_data.is_valid(raise_exception=True)
 

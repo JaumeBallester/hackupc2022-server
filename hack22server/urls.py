@@ -20,6 +20,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('userData/', include('userData.urls')),
     path('fileManager/', include('fileManager.urls')),
+    path('motorbikes/', include('motorbikes.urls')),
     ]
 
 
